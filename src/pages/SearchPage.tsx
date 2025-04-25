@@ -11,20 +11,34 @@ import {
   Menu,
   MenuItem,
   useTheme,
+  Paper,
+  Grid,
+  Avatar,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from '@mui/material';
 import {
   Search as SearchIcon,
   Settings as SettingsIcon,
   Extension as ExtensionIcon,
   AccountCircle as AccountIcon,
+  Add as AddIcon,
+  Edit as EditIcon,
+  Delete as DeleteIcon,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
+import { useStore } from '../store/store';
 
 const SearchPage: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [settingsAnchor, setSettingsAnchor] = useState<null | HTMLElement>(null);
+  const [isAddTabOpen, setIsAddTabOpen] = useState(false);
+  const [newTab, setNewTab] = useState({ name: '', url: '' });
   const theme = useTheme();
   const navigate = useNavigate();
+  const { quickTabs, addQuickTab, removeQuickTab, updateQuickTab } = useStore();
 
   const handleSettingsClick = (event: React.MouseEvent<HTMLElement>) => {
     setSettingsAnchor(event.currentTarget);
@@ -36,8 +50,32 @@ const SearchPage: React.FC = () => {
 
   const handleSearch = (event: React.FormEvent) => {
     event.preventDefault();
-    // Implement search functionality here
-    console.log('Searching for:', searchQuery);
+    if (searchQuery.trim()) {
+      window.open(`https://www.google.com/search?q=${encodeURIComponent(searchQuery)}`, '_blank');
+    }
+  };
+
+  const handleImFeelingLucky = () => {
+    if (searchQuery.trim()) {
+      window.open(`https://www.google.com/search?q=${encodeURIComponent(searchQuery)}&btnI=I%27m+Feeling+Lucky`, '_blank');
+    }
+  };
+
+  const handleAddTab = () => {
+    if (newTab.name && newTab.url) {
+      addQuickTab(newTab);
+      setNewTab({ name: '', url: '' });
+      setIsAddTabOpen(false);
+    }
+  };
+
+  const getFaviconUrl = (url: string) => {
+    try {
+      const domain = new URL(url).hostname;
+      return `https://www.google.com/s2/favicons?domain=${domain}`;
+    } catch {
+      return '';
+    }
   };
 
   return (
@@ -108,13 +146,72 @@ const SearchPage: React.FC = () => {
         </Box>
 
         <Box sx={{ mt: 4, display: 'flex', gap: 2 }}>
-          <Button variant="contained" color="primary">
+          <Button variant="contained" color="primary" onClick={handleSearch}>
             Search
           </Button>
-          <Button variant="outlined" color="primary">
+          <Button variant="outlined" color="primary" onClick={handleImFeelingLucky}>
             I'm Feeling Lucky
           </Button>
         </Box>
+
+        {quickTabs.length > 0 && (
+          <Paper
+            elevation={0}
+            sx={{
+              mt: 6,
+              p: 2,
+              width: '100%',
+              backgroundColor: theme.palette.background.paper,
+              borderRadius: 2,
+            }}
+          >
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+              <Typography variant="h6">Quick Tabs</Typography>
+              <IconButton onClick={() => setIsAddTabOpen(true)} color="primary">
+                <AddIcon />
+              </IconButton>
+            </Box>
+            <Grid container spacing={2}>
+              {quickTabs.map((tab) => (
+                <Grid item xs={12} sm={6} md={4} key={tab.id}>
+                  <Paper
+                    elevation={0}
+                    sx={{
+                      p: 2,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 2,
+                      cursor: 'pointer',
+                      '&:hover': {
+                        backgroundColor: theme.palette.action.hover,
+                      },
+                    }}
+                    onClick={() => window.open(tab.url, '_blank')}
+                  >
+                    <Avatar src={getFaviconUrl(tab.url)} sx={{ width: 32, height: 32 }}>
+                      {tab.name[0]}
+                    </Avatar>
+                    <Box sx={{ flex: 1 }}>
+                      <Typography variant="subtitle1">{tab.name}</Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {tab.url}
+                      </Typography>
+                    </Box>
+                    <IconButton
+                      size="small"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        removeQuickTab(tab.id);
+                      }}
+                    >
+                      <DeleteIcon fontSize="small" />
+                    </IconButton>
+                  </Paper>
+                </Grid>
+              ))}
+            </Grid>
+          </Paper>
+        )}
       </Box>
 
       <Menu
@@ -131,6 +228,33 @@ const SearchPage: React.FC = () => {
         <MenuItem onClick={handleSettingsClose}>Appearance</MenuItem>
         <MenuItem onClick={handleSettingsClose}>Keyboard Shortcuts</MenuItem>
       </Menu>
+
+      <Dialog open={isAddTabOpen} onClose={() => setIsAddTabOpen(false)}>
+        <DialogTitle>Add Quick Tab</DialogTitle>
+        <DialogContent>
+          <TextField
+            autoFocus
+            margin="dense"
+            label="Name"
+            fullWidth
+            value={newTab.name}
+            onChange={(e) => setNewTab({ ...newTab, name: e.target.value })}
+          />
+          <TextField
+            margin="dense"
+            label="URL"
+            fullWidth
+            value={newTab.url}
+            onChange={(e) => setNewTab({ ...newTab, url: e.target.value })}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setIsAddTabOpen(false)}>Cancel</Button>
+          <Button onClick={handleAddTab} variant="contained">
+            Add
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };

@@ -13,6 +13,8 @@ import {
   Button,
   TextField,
   InputAdornment,
+  Chip,
+  Tooltip,
 } from '@mui/material';
 import {
   ArrowBack as ArrowBackIcon,
@@ -20,8 +22,14 @@ import {
   Extension as ExtensionIcon,
   Download as DownloadIcon,
   Delete as DeleteIcon,
+  SportsEsports as GamingIcon,
+  FilterAlt as FilterIcon,
+  DarkMode as DarkModeIcon,
+  Block as AdBlockIcon,
+  Speed as SpeedIcon,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
+import { useStore } from '../store/store';
 
 interface Plugin {
   id: string;
@@ -29,37 +37,76 @@ interface Plugin {
   description: string;
   enabled: boolean;
   version: string;
+  icon?: React.ReactNode;
+  features?: string[];
 }
 
 const PluginsPage: React.FC = () => {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
-  const [plugins, setPlugins] = useState<Plugin[]>([
+  const { plugins, togglePlugin } = useStore();
+
+  const availablePlugins: Plugin[] = [
     {
       id: '1',
       name: 'Gaming Mode',
-      description: 'Optimize search for gaming content',
-      enabled: true,
+      description: 'Optimize search for gaming content and performance',
+      enabled: plugins.find(p => p.id === '1')?.enabled || false,
       version: '1.0.0',
+      icon: <GamingIcon />,
+      features: ['Gaming-focused search results', 'Performance optimization', 'Gaming news integration'],
     },
     {
       id: '2',
       name: 'Advanced Filters',
       description: 'Add advanced filtering options to search results',
-      enabled: false,
+      enabled: plugins.find(p => p.id === '2')?.enabled || false,
       version: '1.2.0',
+      icon: <FilterIcon />,
+      features: ['Custom filters', 'Time-based filtering', 'Content type filtering'],
     },
-  ]);
+    {
+      id: '3',
+      name: 'Quick-Tabs',
+      description: 'Add quick access tabs for your favorite websites',
+      enabled: plugins.find(p => p.id === '3')?.enabled || false,
+      version: '1.0.0',
+      icon: <ExtensionIcon />,
+      features: ['Customizable tabs', 'Favicon support', 'Quick access'],
+    },
+    {
+      id: '4',
+      name: 'Dark Reader',
+      description: 'Automatically darkens websites for better night viewing',
+      enabled: plugins.find(p => p.id === '4')?.enabled || false,
+      version: '1.0.0',
+      icon: <DarkModeIcon />,
+      features: ['Automatic dark mode', 'Custom themes', 'Eye protection'],
+    },
+    {
+      id: '5',
+      name: 'Ad Blocker',
+      description: 'Blocks intrusive ads and trackers',
+      enabled: plugins.find(p => p.id === '5')?.enabled || false,
+      version: '1.0.0',
+      icon: <AdBlockIcon />,
+      features: ['Ad blocking', 'Tracker blocking', 'Privacy protection'],
+    },
+    {
+      id: '6',
+      name: 'Performance Booster',
+      description: 'Optimize browser performance and loading times',
+      enabled: false,
+      version: '1.0.0',
+      icon: <SpeedIcon />,
+      features: ['Resource optimization', 'Cache management', 'Loading speed boost'],
+    },
+  ];
 
-  const handleTogglePlugin = (pluginId: string) => {
-    setPlugins(plugins.map(plugin =>
-      plugin.id === pluginId ? { ...plugin, enabled: !plugin.enabled } : plugin
-    ));
-  };
-
-  const handleDeletePlugin = (pluginId: string) => {
-    setPlugins(plugins.filter(plugin => plugin.id !== pluginId));
-  };
+  const filteredPlugins = availablePlugins.filter(plugin =>
+    plugin.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    plugin.description.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   return (
     <Box sx={{ p: 3, maxWidth: 800, mx: 'auto' }}>
@@ -100,19 +147,38 @@ const PluginsPage: React.FC = () => {
         </Box>
 
         <List>
-          {plugins.map((plugin) => (
+          {filteredPlugins.map((plugin) => (
             <ListItem key={plugin.id}>
               <ListItemIcon>
-                <ExtensionIcon />
+                {plugin.icon}
               </ListItemIcon>
               <ListItemText
-                primary={plugin.name}
+                primary={
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    {plugin.name}
+                    <Chip
+                      label={`v${plugin.version}`}
+                      size="small"
+                      sx={{ ml: 1 }}
+                    />
+                  </Box>
+                }
                 secondary={
                   <>
                     {plugin.description}
-                    <Typography variant="caption" display="block">
-                      Version: {plugin.version}
-                    </Typography>
+                    {plugin.features && (
+                      <Box sx={{ mt: 1, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                        {plugin.features.map((feature, index) => (
+                          <Tooltip key={index} title={feature}>
+                            <Chip
+                              label={feature}
+                              size="small"
+                              variant="outlined"
+                            />
+                          </Tooltip>
+                        ))}
+                      </Box>
+                    )}
                   </>
                 }
               />
@@ -120,15 +186,8 @@ const PluginsPage: React.FC = () => {
                 <Switch
                   edge="end"
                   checked={plugin.enabled}
-                  onChange={() => handleTogglePlugin(plugin.id)}
+                  onChange={() => togglePlugin(plugin.id)}
                 />
-                <IconButton
-                  edge="end"
-                  onClick={() => handleDeletePlugin(plugin.id)}
-                  sx={{ ml: 1 }}
-                >
-                  <DeleteIcon />
-                </IconButton>
               </ListItemSecondaryAction>
             </ListItem>
           ))}
